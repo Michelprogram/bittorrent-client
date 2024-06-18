@@ -84,14 +84,23 @@ func String(data string) (Bencode, error) {
 //l5:helloi52ee -> [“hello”,52]
 func List(data string) (Bencode, error) {
 
+	if data == "le" {
+		return Bencode{
+			Data:    data,
+			Decoded: make([]interface{}, 0),
+			Size:    0,
+		}, nil
+	}
+
 	decoded := make([]interface{}, 0)
 
 	resized := data[1 : len(data)-1]
 
 	max := len(data) - 2
 	cursor := 0
+	flag := true
 
-	for cursor < max {
+	for flag {
 
 		res, err := Decode(resized[cursor:])
 
@@ -102,6 +111,10 @@ func List(data string) (Bencode, error) {
 		cursor += res.Size
 
 		decoded = append(decoded, res.Decoded)
+
+		if cursor >= max || resized[cursor] == 'e' {
+			flag = false
+		}
 	}
 
 	return Bencode{
