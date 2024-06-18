@@ -1,47 +1,114 @@
 package main
 
 import (
-	// Uncomment this line to pass the first stage
-	// "encoding/json"
 	"encoding/json"
+	"errors"
 	"fmt"
 	"os"
 	"strconv"
+	"strings"
 	"unicode"
-	// bencode "github.com/jackpal/bencode-go" // Available if you need it!
 )
 
-// Example:
-// - 5:hello -> hello
-// - 10:hello12345 -> hello12345
-// i432735871e -> 432735871
-func decodeBencode(bencodedString string) (any, error) {
+type Bencode struct {
+	Data    string
+	Size    int
+	Decoded any
+}
 
-	if bencodedString[0] == 'i' {
-		return strconv.Atoi(bencodedString[1 : len(bencodedString)-1])
-	} else {
-		if unicode.IsDigit(rune(bencodedString[0])) {
-			var firstColonIndex int
+func (b Bencode) ToJson() (string, error) {
 
-			for i := 0; i < len(bencodedString); i++ {
-				if bencodedString[i] == ':' {
-					firstColonIndex = i
-					break
-				}
-			}
+	res, err := json.Marshal(b.Decoded)
 
-			lengthStr := bencodedString[:firstColonIndex]
-
-			length, err := strconv.Atoi(lengthStr)
-			if err != nil {
-				return "", err
-			}
-
-			return bencodedString[firstColonIndex+1 : firstColonIndex+1+length], nil
-		} else {
-			return "", fmt.Errorf("Only strings are supported at the moment")
-		}
+	if err != nil {
+		return "", nil
 	}
+
+	return string(res), nil
+}
+
+func Decode(data string) (Bencode, error) {
+
+	if data[0] == 'i' {
+		return Int(data)
+	}
+
+	if unicode.IsDigit(rune(data[0])) {
+		return String(data)
+	}
+
+	if data[0] == 'l' {
+		return List(data)
+	}
+
+	return Bencode{}, errors.New("Data can't be decoded ...")
+
+}
+
+// i432735871e -> 432735871
+func Int(data string) (Bencode, error) {
+
+	end := strings.Index(data, "e")
+	res, err := strconv.Atoi(data[1:end])
+
+	if err != nil {
+		return Bencode{}, nil
+	}
+
+	return Bencode{
+		Data:    data,
+		Decoded: res,
+		Size:    len(fmt.Sprintf("%d", res)) + 2,
+	}, nil
+
+}
+
+// - 10:hello12345 -> hello12345
+func String(data string) (Bencode, error) {
+
+	end := strings.Index(data, ":")
+
+	length, err := strconv.Atoi(data[:end])
+	if err != nil {
+		return Bencode{}, err
+	}
+
+	return Bencode{
+		Data:    data,
+		Decoded: data[end+1 : end+length+1],
+		Size:    length + end + 1,
+	}, nil
+
+}
+
+//l5:helloi52ee -> [“hello”,52]
+func List(data string) (Bencode, error) {
+
+	decoded := make([]interface{}, 0)
+
+	resized := data[1 : len(data)-1]
+
+	max := len(data) - 2
+	cursor := 0
+
+	for cursor < max {
+
+		res, err := Decode(resized[cursor:])
+
+		if err != nil {
+			return Bencode{}, err
+		}
+
+		cursor += res.Size
+
+		decoded = append(decoded, res.Decoded)
+	}
+
+	return Bencode{
+		Data:    data,
+		Decoded: decoded,
+		Size:    cursor + 2,
+	}, nil
 
 }
 
@@ -53,16 +120,20 @@ func main() {
 
 		bencodedValue := os.Args[2]
 
-		decoded, err := decodeBencode(bencodedValue)
+		bencode, err := Decode(bencodedValue)
+
 		if err != nil {
-			fmt.Println(err)
-			return
+			panic(err)
 		}
 
-		jsonOutput, _ := json.Marshal(decoded)
-		fmt.Println(string(jsonOutput))
+		json, err := bencode.ToJson()
+		if err != nil {
+			panic(err)
+		}
+
+		fmt.Println(json)
+
 	} else {
-		fmt.Println("Unknown command: " + command)
-		os.Exit(1)
+		panic("Unknown command: " + command)
 	}
 }
