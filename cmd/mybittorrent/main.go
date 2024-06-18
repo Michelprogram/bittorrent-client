@@ -7,43 +7,41 @@ import (
 	"fmt"
 	"os"
 	"strconv"
+	"unicode"
 	// bencode "github.com/jackpal/bencode-go" // Available if you need it!
 )
 
 // Example:
 // - 5:hello -> hello
 // - 10:hello12345 -> hello12345
-// 5 -> i52e
-func decodeBencode(bencodedString string) (string, error) {
+// i432735871e -> 432735871
+func decodeBencode(bencodedString string) (any, error) {
 
-	if _, err := strconv.Atoi(bencodedString); err == nil {
-		return fmt.Sprintf("i%se", bencodedString), nil
+	if bencodedString[0] == 'i' {
+		return strconv.Atoi(bencodedString[1 : len(bencodedString)-1])
 	} else {
-		return fmt.Sprint("%d:%s", len(bencodedString), bencodedString), nil
-	}
+		if unicode.IsDigit(rune(bencodedString[0])) {
+			var firstColonIndex int
 
-	/* if unicode.IsDigit(rune(bencodedString[0])) {
-		var firstColonIndex int
-
-		for i := 0; i < len(bencodedString); i++ {
-			if bencodedString[i] == ':' {
-				firstColonIndex = i
-				break
+			for i := 0; i < len(bencodedString); i++ {
+				if bencodedString[i] == ':' {
+					firstColonIndex = i
+					break
+				}
 			}
+
+			lengthStr := bencodedString[:firstColonIndex]
+
+			length, err := strconv.Atoi(lengthStr)
+			if err != nil {
+				return "", err
+			}
+
+			return bencodedString[firstColonIndex+1 : firstColonIndex+1+length], nil
+		} else {
+			return "", fmt.Errorf("Only strings are supported at the moment")
 		}
-
-		lengthStr := bencodedString[:firstColonIndex]
-
-		length, err := strconv.Atoi(lengthStr)
-		if err != nil {
-			return "", err
-		}
-
-		return bencodedString[firstColonIndex+1 : firstColonIndex+1+length], nil
-	} else {
-		return "", fmt.Errorf("Only strings are supported at the moment")
 	}
-	*/
 
 }
 
