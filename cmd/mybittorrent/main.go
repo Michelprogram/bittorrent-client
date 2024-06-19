@@ -62,6 +62,22 @@ func main() {
 			fmt.Println(ip)
 		}
 
+	} else if command == "handshake" {
+		path := os.Args[2]
+		peer := os.Args[3]
+
+		torrent, err := bittorent.Info(path)
+
+		if err != nil {
+			panic(err)
+		}
+
+		err = bittorent.Handshake(peer, torrent)
+
+		if err != nil {
+			panic(err)
+		}
+
 	} else {
 		panic("Unknown command: " + command)
 	}

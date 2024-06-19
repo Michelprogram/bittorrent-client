@@ -1,8 +1,11 @@
 package main
 
 import (
+	"bytes"
 	"crypto/sha1"
+	"encoding/hex"
 	"fmt"
+	"net"
 	"os"
 
 	"github.com/jackpal/bencode-go"
@@ -101,4 +104,46 @@ func (b Bittorrent) Info(path string) (Torrent, error) {
 func (b Bittorrent) Receive(data string) (Bencode[any], error) {
 
 	return NewBencode[any](data)
+}
+
+func (b Bittorrent) Handshake(peer string, torrent Torrent) error {
+
+	var handshake bytes.Buffer
+
+	tcpServer, err := net.ResolveTCPAddr("tcp", peer)
+	if err != nil {
+		return err
+	}
+
+	conn, err := net.DialTCP("tcp", nil, tcpServer)
+
+	if err != nil {
+		return err
+	}
+
+	defer conn.Close()
+
+	handshake.WriteByte(byte(19))
+	handshake.WriteString("BitTorrent protocol")
+	handshake.Write(make([]byte, 8))
+	handshake.Write(torrent.Hash)
+	handshake.WriteString(randomPeerId())
+
+	_, err = conn.Write(handshake.Bytes())
+
+	if err != nil {
+		return err
+	}
+
+	buffer := make([]byte, 1024)
+
+	size, err := conn.Read(buffer)
+	if err != nil {
+
+		return err
+	}
+
+	fmt.Printf("Peer ID: %s\n", hex.EncodeToString(buffer[:size]))
+
+	return nil
 }

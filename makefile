@@ -26,6 +26,9 @@ info: build
 peers: build
 	./bittorent peers sample.torrent
 
+handshake: build
+	./bittorent handshake sample.torrent 178.62.85.20:51489
+
 codecrafters:
 	rm bittorent || true
 	codecrafters test
