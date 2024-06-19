@@ -1,8 +1,17 @@
-string:
-	go run cmd/mybittorrent/main.go decode 5:hello
-	go run cmd/mybittorrent/main.go decode 10:strawberry
+whole-test:
+	go test ./...
 
-int:
+name-test:
+	go test ./... -run $(name)
+
+build:
+	go build -o bittorent ./...
+
+string: build
+	./bittorent decode 5:hello
+	./bittorent decode 10:strawberry
+
+int: build
 	go run cmd/mybittorrent/main.go decode i345e
 
 list:
