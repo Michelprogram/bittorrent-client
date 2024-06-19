@@ -49,8 +49,14 @@ func (t Torrent) String() string {
 
 	var hashesString string
 
-	for _, hash := range t.piecesHash() {
-		hashesString += fmt.Sprintf("%x\n", hash)
+	for i, hash := range t.piecesHash() {
+
+		if i == len(t.piecesHash()) {
+			hashesString += fmt.Sprintf("%x", hash)
+		} else {
+			hashesString += fmt.Sprintf("%x\n", hash)
+		}
+
 	}
 
 	return fmt.Sprintf("Tracker URL: %s\nLength: %d\nInfo Hash: %x\nPiece Length: %d\nPiece Hashes:\n%s", t.Announce, t.Info.Length, t.Hash, t.Info.PieceLength, hashesString)

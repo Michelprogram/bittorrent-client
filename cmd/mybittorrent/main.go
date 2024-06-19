@@ -2,7 +2,6 @@ package main
 
 import (
 	"fmt"
-	"log"
 	"os"
 )
 
@@ -38,7 +37,7 @@ func main() {
 			panic(err)
 		}
 
-		log.Println(torrent)
+		fmt.Println(torrent)
 
 	} else if command == "peers" {
 
