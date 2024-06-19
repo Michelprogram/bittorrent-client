@@ -12,10 +12,13 @@ string: build
 	./bittorent decode 10:strawberry
 
 int: build
-	go run cmd/mybittorrent/main.go decode i345e
+	./bittorent decode i345e
 
-list:
-	go run cmd/mybittorrent/main.go decode l5:helloi345ee
-	go run cmd/mybittorrent/main.go decode lli636e9:pineappleee
-	go run cmd/mybittorrent/main.go decode l10:strawberryi635ee
-	go run cmd/mybittorrent/main.go decode lli4eei5ee
+list: build
+	./bittorent decode l5:helloi345ee
+	./bittorent decode lli636e9:pineappleee
+	./bittorent decode l10:strawberryi635ee
+	./bittorent decode lli4eei5ee
+
+info: build
+	./bittorent info sample.torrent

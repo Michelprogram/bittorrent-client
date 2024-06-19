@@ -98,7 +98,7 @@ func TestDecodeString(t *testing.T) {
 			}
 
 			if res.Decoded != tt.want {
-				t.Errorf("Expected %d, got %d", tt.want, res.Decoded)
+				t.Errorf("Expected %d, got %s", tt.want, res.Decoded)
 			}
 		})
 	}
@@ -124,7 +124,7 @@ func TestDecodeDict(t *testing.T) {
 				t.Error(err)
 			}
 
-			for key, value := range res.Decoded.(map[string]interface{}) {
+			for key, value := range res.Decoded {
 				if tt.want.(map[string]interface{})[key] != value {
 					t.Errorf("Expected %v, got %v", tt.want.(map[string]interface{})[key], value)
 				}

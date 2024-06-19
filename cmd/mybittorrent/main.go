@@ -28,6 +28,17 @@ func main() {
 
 		fmt.Println(json)
 
+	} else if command == "info" {
+
+		path := os.Args[2]
+		torrent, err := bittorent.Info(path)
+
+		if err != nil {
+			panic(err)
+		}
+
+		fmt.Printf("Tracker URL: %s\nLength: %d", torrent.Announce, torrent.Length)
+
 	} else {
 		panic("Unknown command: " + command)
 	}
