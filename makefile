@@ -23,6 +23,9 @@ list: build
 info: build
 	./bittorent info sample.torrent
 
+peers: build
+	./bittorent peers sample.torrent
+
 codecrafters:
 	rm bittorent || true
 	codecrafters test
