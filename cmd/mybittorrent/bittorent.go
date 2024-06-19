@@ -127,7 +127,7 @@ func (b Bittorrent) Handshake(peer string, torrent Torrent) error {
 	handshake.WriteString("BitTorrent protocol")
 	handshake.Write(make([]byte, 8))
 	handshake.Write(torrent.Hash)
-	handshake.WriteString(randomPeerId())
+	handshake.Write([]byte{0, 0, 1, 1, 2, 2, 3, 3, 4, 4, 5, 5, 6, 6, 7, 7, 8, 8, 9, 9})
 
 	_, err = conn.Write(handshake.Bytes())
 
@@ -143,7 +143,7 @@ func (b Bittorrent) Handshake(peer string, torrent Torrent) error {
 		return err
 	}
 
-	fmt.Printf("Peer ID: %s\n", hex.EncodeToString(buffer[:size]))
+	fmt.Printf("Peer ID: %s\n", hex.EncodeToString(buffer[48:size]))
 
 	return nil
 }
