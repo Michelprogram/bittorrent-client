@@ -22,3 +22,8 @@ list: build
 
 info: build
 	./bittorent info sample.torrent
+
+codecrafters:
+	rm bittorrent || true
+	codecrafters test
+	codecrafters submit
