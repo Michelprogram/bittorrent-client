@@ -37,7 +37,7 @@ func main() {
 			panic(err)
 		}
 
-		fmt.Printf("Tracker URL: %s\nLength: %d\nInfo Hash: %x\n", torrent.Announce, torrent.Info.Length, torrent.Hash)
+		fmt.Print(torrent)
 
 	} else {
 		panic("Unknown command: " + command)

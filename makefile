@@ -24,6 +24,6 @@ info: build
 	./bittorent info sample.torrent
 
 codecrafters:
-	rm bittorrent || true
+	rm bittorent || true
 	codecrafters test
 	codecrafters submit
