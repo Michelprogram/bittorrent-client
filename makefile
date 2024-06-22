@@ -29,6 +29,9 @@ peers: build
 handshake: build
 	./bittorent handshake sample.torrent 178.62.85.20:51489
 
+download_piece: build
+	./bittorent download_piece -o /tmp/test-piece-0 sample.torrent 0
+
 codecrafters:
 	rm bittorent || true
 	codecrafters test

@@ -4,6 +4,7 @@ import (
 	"bytes"
 	"crypto/sha1"
 	"encoding/hex"
+	"errors"
 	"fmt"
 	"net"
 	"os"
@@ -12,11 +13,9 @@ import (
 )
 
 var (
-	HASH_LEN = 20
+	HASH_LEN           = 20
+	SIXTEEN_KILO_BYTES = 16 * 1024
 )
-
-type Bittorrent struct {
-}
 
 type Metafile struct {
 	Announce string   `bencode:"announce"`
@@ -65,8 +64,20 @@ func (t Torrent) String() string {
 	return fmt.Sprintf("Tracker URL: %s\nLength: %d\nInfo Hash: %x\nPiece Length: %d\nPiece Hashes:\n%s", t.Announce, t.Info.Length, t.Hash, t.Info.PieceLength, hashesString)
 }
 
+type Bittorrent struct {
+	net.Conn
+	torrent        *Torrent
+	PeerId         string
+	NumberOfBlocks int
+}
+
 func NewBittorrent() *Bittorrent {
-	return &Bittorrent{}
+	return &Bittorrent{
+		Conn:           nil,
+		torrent:        nil,
+		PeerId:         "",
+		NumberOfBlocks: 0,
+	}
 }
 
 func (b Bittorrent) Info(path string) (Torrent, error) {
@@ -106,7 +117,7 @@ func (b Bittorrent) Receive(data string) (Bencode[any], error) {
 	return NewBencode[any](data)
 }
 
-func (b Bittorrent) Handshake(peer string, torrent Torrent) error {
+func (b *Bittorrent) Handshake(peer string, torrent Torrent) error {
 
 	var handshake bytes.Buffer
 
@@ -120,8 +131,6 @@ func (b Bittorrent) Handshake(peer string, torrent Torrent) error {
 	if err != nil {
 		return err
 	}
-
-	defer conn.Close()
 
 	handshake.WriteByte(byte(19))
 	handshake.WriteString("BitTorrent protocol")
@@ -143,7 +152,112 @@ func (b Bittorrent) Handshake(peer string, torrent Torrent) error {
 		return err
 	}
 
-	fmt.Printf("Peer ID: %s\n", hex.EncodeToString(buffer[48:size]))
+	b.PeerId = hex.EncodeToString(buffer[48:size])
+	b.torrent = &torrent
+	b.Conn = conn
 
 	return nil
+}
+
+func (b Bittorrent) sendInteresting() error {
+
+	_, err := b.Write([]byte{0, 0, 0, 1, 2})
+
+	if err != nil {
+		return err
+	}
+
+	response := make([]byte, 5)
+
+	_, err = b.Read(response)
+	if err != nil {
+		return err
+	}
+
+	if response[4] != 1 {
+		return errors.New("not a unchoke messageback")
+	}
+
+	return nil
+}
+
+func (b *Bittorrent) generatesBlocks() []*Block {
+
+	var sum, index int
+
+	b.NumberOfBlocks = b.torrent.Info.PieceLength / SIXTEEN_KILO_BYTES
+
+	blocks := make([]*Block, b.NumberOfBlocks*len(b.torrent.piecesHash()))
+
+	for i := range b.torrent.piecesHash() {
+		for j := 0; j < b.NumberOfBlocks; j++ {
+			block := &Block{
+				lengthPrefix: 13,
+				id:           6,
+				index:        uint32(i),
+				begin:        uint32(j * int(SIXTEEN_KILO_BYTES)),
+				length:       uint32(SIXTEEN_KILO_BYTES),
+			}
+
+			sum += SIXTEEN_KILO_BYTES
+
+			if i == len(b.torrent.piecesHash())-1 && j == b.NumberOfBlocks-1 {
+				block.length = uint32(b.torrent.Info.Length - (sum - SIXTEEN_KILO_BYTES))
+			}
+			blocks[index] = block
+			index++
+		}
+	}
+
+	return blocks
+
+}
+
+func (b Bittorrent) compareHashes(hashes [][20]byte) error {
+
+	if len(hashes) != len(b.torrent.piecesHash()) {
+		return fmt.Errorf("size doesn't match : pieces size %d, hashes size %d\n", len(b.torrent.piecesHash()), len(hashes))
+	}
+
+	for i, hash := range b.torrent.piecesHash() {
+
+		if !bytes.Equal(hash[:], hashes[i][:]) {
+			return fmt.Errorf("hash doesn't match at index %d : \nPiece hash : %x\nDownloaded hash :%x\n", i, hash, hashes[i])
+		}
+
+	}
+
+	return nil
+
+}
+
+func (b Bittorrent) Download() error {
+
+	defer b.Close()
+
+	if b.torrent == nil {
+		return errors.New("handshake doesn't applied")
+	}
+
+	b.sendInteresting()
+
+	blocks := b.generatesBlocks()
+
+	for _, block := range blocks {
+		block.Request(b.Conn)
+	}
+
+	var hashes [][20]byte
+
+	for i := 0; i < len(blocks); i += b.NumberOfBlocks {
+
+		block := blocks[i]
+		end := i + b.NumberOfBlocks
+
+		combinedData := block.Merge(blocks[i+1 : end])
+		hashes = append(hashes, sha1.Sum(combinedData))
+	}
+
+	return b.compareHashes(hashes)
+
 }

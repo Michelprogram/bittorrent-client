@@ -78,6 +78,37 @@ func main() {
 			panic(err)
 		}
 
+	} else if command == "download_piece" {
+		path := os.Args[4]
+
+		torrent, err := bittorent.Info(path)
+
+		if err != nil {
+			panic(err)
+		}
+
+		tracker, err := NewTracker(torrent)
+		if err != nil {
+			panic(err)
+		}
+
+		response, err := tracker.Get()
+		if err != nil {
+			panic(err)
+		}
+
+		err = bittorent.Handshake(response.Peers[1].String(), torrent)
+
+		if err != nil {
+			panic(err)
+		}
+
+		err = bittorent.Download()
+
+		if err != nil {
+			panic(err)
+		}
+
 	} else {
 		panic("Unknown command: " + command)
 	}
