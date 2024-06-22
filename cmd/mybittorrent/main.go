@@ -3,6 +3,7 @@ package main
 import (
 	"fmt"
 	"os"
+	"strconv"
 )
 
 func main() {
@@ -79,6 +80,7 @@ func main() {
 		}
 
 	} else if command == "download_piece" {
+		index := os.Args[5]
 		path := os.Args[4]
 		output := os.Args[3]
 
@@ -104,7 +106,9 @@ func main() {
 			panic(err)
 		}
 
-		err = bittorent.Download(output)
+		res, _ := strconv.Atoi(index)
+
+		err = bittorent.Download(output, res)
 
 		if err != nil {
 			panic(err)

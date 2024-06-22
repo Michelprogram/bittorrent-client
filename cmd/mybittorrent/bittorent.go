@@ -243,9 +243,7 @@ func (b Bittorrent) downloadPiece(index uint32, blocks []*Block) []byte {
 
 }
 
-func (b Bittorrent) Download(path string) error {
-
-	//var wg sync.WaitGroup
+func (b Bittorrent) Download(path string, index int) error {
 
 	defer b.Close()
 
@@ -261,9 +259,9 @@ func (b Bittorrent) Download(path string) error {
 
 	blocks := b.generatesBlocks()
 
-	res := b.downloadPiece(0, blocks)
+	res := b.downloadPiece(uint32(index), blocks)
 
-	err = b.compareHashes(0, sha1.Sum(res))
+	err = b.compareHashes(index, sha1.Sum(res))
 
 	if err != nil {
 		return err
@@ -276,30 +274,6 @@ func (b Bittorrent) Download(path string) error {
 	}
 
 	log.Println("Piece 0 downloaded to /tmp/test-piece-0.")
-
-	/*
-		wg.Add(2)
-
-		for _, block := range blocks[0 : b.NumberOfBlocks-1] {
-			go block.Request(b.Conn, &wg)
-		}
-
-		wg.Wait()
-
-		var hashes [][20]byte
-
-		for i := 0; i < len(blocks); i += b.NumberOfBlocks {
-
-			block := blocks[i]
-			end := i + b.NumberOfBlocks
-
-			combinedData := block.Merge(blocks[i+1 : end])
-			hashes = append(hashes, sha1.Sum(combinedData))
-		}
-
-	*/
-
-	//return b.compareHashes(hashes)
 
 	return nil
 }
