@@ -6,8 +6,10 @@ import (
 	"encoding/hex"
 	"errors"
 	"fmt"
+	"log"
 	"net"
 	"os"
+	"sync"
 
 	"github.com/jackpal/bencode-go"
 )
@@ -213,25 +215,42 @@ func (b *Bittorrent) generatesBlocks() []*Block {
 
 }
 
-func (b Bittorrent) compareHashes(hashes [][20]byte) error {
+func (b Bittorrent) compareHashes(index int, hashes [20]byte) error {
 
-	if len(hashes) != len(b.torrent.piecesHash()) {
-		return fmt.Errorf("size doesn't match : pieces size %d, hashes size %d\n", len(b.torrent.piecesHash()), len(hashes))
-	}
-
-	for i, hash := range b.torrent.piecesHash() {
-
-		if !bytes.Equal(hash[:], hashes[i][:]) {
-			return fmt.Errorf("hash doesn't match at index %d : \nPiece hash : %x\nDownloaded hash :%x\n", i, hash, hashes[i])
-		}
-
+	if !bytes.Equal(b.torrent.piecesHash()[index][:], hashes[:]) {
+		return fmt.Errorf("hash doesn't match at index %d : \nPiece hash : %x\nDownloaded hash :%x\n", index, b.torrent.piecesHash()[index], hashes)
 	}
 
 	return nil
 
 }
 
+func (b Bittorrent) downloadPiece(index uint32, blocks []*Block) [20]byte {
+
+	var res []*Block
+	var wg sync.WaitGroup
+
+	for _, block := range blocks {
+		if block.index == index {
+			res = append(res, block)
+			wg.Add(1)
+			go func() {
+				defer wg.Done()
+				block.Request(b.Conn)
+			}()
+		}
+	}
+
+	wg.Wait()
+
+	hash := res[0].Merge(res[1:])
+
+	return sha1.Sum(hash)
+}
+
 func (b Bittorrent) Download() error {
+
+	//var wg sync.WaitGroup
 
 	defer b.Close()
 
@@ -243,21 +262,35 @@ func (b Bittorrent) Download() error {
 
 	blocks := b.generatesBlocks()
 
-	for _, block := range blocks {
-		block.Request(b.Conn)
-	}
+	hash := b.downloadPiece(0, blocks)
 
-	var hashes [][20]byte
+	b.compareHashes(0, hash)
 
-	for i := 0; i < len(blocks); i += b.NumberOfBlocks {
+	log.Printf("%x\n", hash)
 
-		block := blocks[i]
-		end := i + b.NumberOfBlocks
+	/*
+		wg.Add(2)
 
-		combinedData := block.Merge(blocks[i+1 : end])
-		hashes = append(hashes, sha1.Sum(combinedData))
-	}
+		for _, block := range blocks[0 : b.NumberOfBlocks-1] {
+			go block.Request(b.Conn, &wg)
+		}
 
-	return b.compareHashes(hashes)
+		wg.Wait()
 
+		var hashes [][20]byte
+
+		for i := 0; i < len(blocks); i += b.NumberOfBlocks {
+
+			block := blocks[i]
+			end := i + b.NumberOfBlocks
+
+			combinedData := block.Merge(blocks[i+1 : end])
+			hashes = append(hashes, sha1.Sum(combinedData))
+		}
+
+	*/
+
+	//return b.compareHashes(hashes)
+
+	return nil
 }
