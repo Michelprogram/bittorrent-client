@@ -80,6 +80,7 @@ func main() {
 
 	} else if command == "download_piece" {
 		path := os.Args[4]
+		output := os.Args[3]
 
 		torrent, err := bittorent.Info(path)
 
@@ -103,7 +104,7 @@ func main() {
 			panic(err)
 		}
 
-		err = bittorent.Download()
+		err = bittorent.Download(output)
 
 		if err != nil {
 			panic(err)
