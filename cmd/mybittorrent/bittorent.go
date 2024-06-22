@@ -169,14 +169,9 @@ func (b Bittorrent) sendInteresting() error {
 		return err
 	}
 
-	response := make([]byte, 5)
+	err = Wait(b.Conn, 1)
 
-	_, err = b.Read(response)
 	if err != nil {
-		return err
-	}
-
-	if response[4] != 1 {
 		return errors.New("not a unchoke messageback")
 	}
 
@@ -238,6 +233,7 @@ func (b Bittorrent) downloadPiece(index uint32, blocks []*Block) []byte {
 				defer wg.Done()
 				block.Request(b.Conn)
 			}()
+
 		}
 	}
 
@@ -257,13 +253,17 @@ func (b Bittorrent) Download(path string) error {
 		return errors.New("handshake doesn't applied")
 	}
 
-	b.sendInteresting()
+	err := b.sendInteresting()
+
+	if err != nil {
+		return err
+	}
 
 	blocks := b.generatesBlocks()
 
 	res := b.downloadPiece(0, blocks)
 
-	err := b.compareHashes(0, sha1.Sum(res))
+	err = b.compareHashes(0, sha1.Sum(res))
 
 	if err != nil {
 		return err
