@@ -7,9 +7,9 @@ import (
 	"errors"
 	"fmt"
 	"log"
+	"math"
 	"net"
 	"os"
-	"sync"
 
 	"github.com/jackpal/bencode-go"
 )
@@ -182,9 +182,9 @@ func (b *Bittorrent) generatesBlocks() []*Block {
 
 	var sum, index int
 
-	b.NumberOfBlocks = b.torrent.Info.PieceLength / SIXTEEN_KILO_BYTES
+	b.NumberOfBlocks = int(math.Ceil(float64(b.torrent.Info.PieceLength) / float64(SIXTEEN_KILO_BYTES)))
 
-	blocks := make([]*Block, b.NumberOfBlocks*len(b.torrent.piecesHash()))
+	blocks := make([]*Block, 0)
 
 	for i := range b.torrent.piecesHash() {
 		for j := 0; j < b.NumberOfBlocks; j++ {
@@ -198,10 +198,13 @@ func (b *Bittorrent) generatesBlocks() []*Block {
 
 			sum += SIXTEEN_KILO_BYTES
 
-			if i == len(b.torrent.piecesHash())-1 && j == b.NumberOfBlocks-1 {
+			if sum > b.torrent.Info.Length {
 				block.length = uint32(b.torrent.Info.Length - (sum - SIXTEEN_KILO_BYTES))
+				blocks = append(blocks, block)
+				break
 			}
-			blocks[index] = block
+			blocks = append(blocks, block)
+
 			index++
 		}
 	}
@@ -223,21 +226,25 @@ func (b Bittorrent) compareHashes(index int, hashes [20]byte) error {
 func (b Bittorrent) downloadPiece(index uint32, blocks []*Block) []byte {
 
 	var res []*Block
-	var wg sync.WaitGroup
+	//var wg sync.WaitGroup
 
 	for _, block := range blocks {
 		if block.index == index {
 			res = append(res, block)
-			wg.Add(1)
-			go func() {
-				defer wg.Done()
-				block.Request(b.Conn)
-			}()
-
+			_ = block.Request(b.Conn)
+			/*
+				wg.Add(1)
+				go func() {
+					defer wg.Done()
+					if err != nil {
+						panic(err)
+					}
+				}()
+			*/
 		}
 	}
 
-	wg.Wait()
+	//wg.Wait()
 
 	return res[0].Merge(res[1:])
 
@@ -267,13 +274,13 @@ func (b Bittorrent) Download(path string, index int) error {
 		return err
 	}
 
-	err = os.WriteFile(path, res, 666)
+	err = os.WriteFile(path, res, 777)
 
 	if err != nil {
 		return err
 	}
 
-	log.Println("Piece 0 downloaded to /tmp/test-piece-0.")
+	log.Printf("Piece %d downloaded to /tmp/test-piece-%d.", index, index)
 
 	return nil
 }

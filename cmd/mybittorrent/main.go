@@ -79,6 +79,8 @@ func main() {
 			panic(err)
 		}
 
+		fmt.Printf("Peer ID: %s\n", bittorent.PeerId)
+
 	} else if command == "download_piece" {
 		index := os.Args[5]
 		path := os.Args[4]
@@ -100,7 +102,7 @@ func main() {
 			panic(err)
 		}
 
-		err = bittorent.Handshake(response.Peers[1].String(), torrent)
+		err = bittorent.Handshake(response.Peers[0].String(), torrent)
 
 		if err != nil {
 			panic(err)

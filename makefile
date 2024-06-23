@@ -32,7 +32,12 @@ handshake: build
 download_piece: build
 	./bittorent download_piece -o /tmp/test-piece-0 sample.torrent 0
 
+download_piece_test: build
+	./bittorent download_piece -o /tmp/piece-9 test.torrent 3
+
+download_piece_working: build
+	./bittorent download_piece -o /tmp/piece-9-working working.torrent 9
+
 codecrafters:
 	rm bittorent || true
 	codecrafters test
-	codecrafters submit

@@ -4,6 +4,7 @@ import (
 	"bytes"
 	"encoding/binary"
 	"io"
+	"log"
 	"net"
 )
 
@@ -44,23 +45,24 @@ func (b *Block) Request(conn net.Conn) error {
 		return err
 	}
 
-	size := make([]byte, 4)
+	reader := make([]byte, 4)
 
-	_, err = conn.Read(size)
+	_, err = conn.Read(reader)
+
+	log.Println(reader)
+
+	size := binary.BigEndian.Uint32(reader)
+
+	log.Println(size)
+	reader = make([]byte, size)
+
+	_, err = io.ReadFull(conn, reader)
 
 	if err != nil {
 		return err
 	}
 
-	data := make([]byte, binary.BigEndian.Uint32(size))
-
-	_, err = io.ReadFull(conn, data)
-
-	if err != nil {
-		return err
-	}
-
-	b.Data = data[9:]
+	b.Data = reader[9:]
 
 	return nil
 
