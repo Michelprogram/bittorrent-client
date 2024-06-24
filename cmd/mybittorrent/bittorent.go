@@ -89,6 +89,8 @@ func (b Bittorrent) Info(path string) (Torrent, error) {
 		return Torrent{}, err
 	}
 
+	log.Println(data)
+
 	info, err := NewBencode[map[string]any](string(data))
 
 	if err != nil {
