@@ -89,8 +89,6 @@ func (b Bittorrent) Info(path string) (Torrent, error) {
 		return Torrent{}, err
 	}
 
-	log.Println(data)
-
 	info, err := NewBencode[map[string]any](string(data))
 
 	if err != nil {
@@ -293,6 +291,7 @@ func (b Bittorrent) DownloadWholePieces(output string) error {
 	data := make([]byte, 0)
 
 	for index := range blocks {
+		fmt.Println(index)
 		res := b.downloadPiece(blocks[index])
 
 		err = b.compareHashes(index, sha1.Sum(res))
@@ -303,7 +302,6 @@ func (b Bittorrent) DownloadWholePieces(output string) error {
 
 		data = append(data, res...)
 
-		log.Println(index)
 	}
 
 	fmt.Println(len(data))
