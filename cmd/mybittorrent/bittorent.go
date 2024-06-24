@@ -290,7 +290,8 @@ func (b Bittorrent) DownloadWholePieces(output string) error {
 
 	data := make([]byte, 0)
 
-	for index := range blocks {
+	for index := 0; index < len(blocks); index++ {
+
 		fmt.Println(index)
 		res := b.downloadPiece(blocks[index])
 
@@ -301,7 +302,6 @@ func (b Bittorrent) DownloadWholePieces(output string) error {
 		}
 
 		data = append(data, res...)
-
 	}
 
 	fmt.Println(len(data))
