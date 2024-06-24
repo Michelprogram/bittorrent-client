@@ -110,11 +110,39 @@ func main() {
 
 		res, _ := strconv.Atoi(index)
 
-		err = bittorent.Download(output, res)
+		err = bittorent.DownloadPiece(output, res)
 
 		if err != nil {
 			panic(err)
 		}
+
+	} else if command == "download" {
+		path := os.Args[4]
+		output := os.Args[3]
+
+		torrent, err := bittorent.Info(path)
+
+		if err != nil {
+			panic(err)
+		}
+
+		tracker, err := NewTracker(torrent)
+		if err != nil {
+			panic(err)
+		}
+
+		response, err := tracker.Get()
+		if err != nil {
+			panic(err)
+		}
+
+		err = bittorent.Handshake(response.Peers[0].String(), torrent)
+
+		if err != nil {
+			panic(err)
+		}
+
+		err = bittorent.DownloadWholePieces(output)
 
 	} else {
 		panic("Unknown command: " + command)

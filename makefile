@@ -38,6 +38,9 @@ download_piece_test: build
 download_piece_working: build
 	./bittorent download_piece -o /tmp/piece-9-working working.torrent 9
 
+download_file: build
+	./bittorent download -o /tmp/test.txt sample.torrent
+
 codecrafters:
 	rm bittorent || true
 	codecrafters test

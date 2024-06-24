@@ -178,15 +178,16 @@ func (b Bittorrent) sendInteresting() error {
 	return nil
 }
 
-func (b *Bittorrent) generatesBlocks() []*Block {
+func (b *Bittorrent) generatesBlocks() map[int][]*Block {
 
 	var sum, index int
 
 	b.NumberOfBlocks = int(math.Ceil(float64(b.torrent.Info.PieceLength) / float64(SIXTEEN_KILO_BYTES)))
 
-	blocks := make([]*Block, 0)
+	blocks := make(map[int][]*Block)
 
 	for i := range b.torrent.piecesHash() {
+		blocks[i] = make([]*Block, 0)
 		for j := 0; j < b.NumberOfBlocks; j++ {
 			block := &Block{
 				lengthPrefix: 13,
@@ -200,10 +201,10 @@ func (b *Bittorrent) generatesBlocks() []*Block {
 
 			if sum > b.torrent.Info.Length {
 				block.length = uint32(b.torrent.Info.Length - (sum - SIXTEEN_KILO_BYTES))
-				blocks = append(blocks, block)
+				blocks[i] = append(blocks[i], block)
 				break
 			}
-			blocks = append(blocks, block)
+			blocks[i] = append(blocks[i], block)
 
 			index++
 		}
@@ -223,34 +224,20 @@ func (b Bittorrent) compareHashes(index int, hashes [20]byte) error {
 
 }
 
-func (b Bittorrent) downloadPiece(index uint32, blocks []*Block) []byte {
+func (b Bittorrent) downloadPiece(blocks []*Block) []byte {
 
 	var res []*Block
-	//var wg sync.WaitGroup
 
 	for _, block := range blocks {
-		if block.index == index {
-			res = append(res, block)
-			_ = block.Request(b.Conn)
-			/*
-				wg.Add(1)
-				go func() {
-					defer wg.Done()
-					if err != nil {
-						panic(err)
-					}
-				}()
-			*/
-		}
+		res = append(res, block)
+		_ = block.Request(b.Conn)
 	}
-
-	//wg.Wait()
 
 	return res[0].Merge(res[1:])
 
 }
 
-func (b Bittorrent) Download(path string, index int) error {
+func (b Bittorrent) DownloadPiece(path string, index int) error {
 
 	defer b.Close()
 
@@ -266,7 +253,7 @@ func (b Bittorrent) Download(path string, index int) error {
 
 	blocks := b.generatesBlocks()
 
-	res := b.downloadPiece(uint32(index), blocks)
+	res := b.downloadPiece(blocks[index])
 
 	err = b.compareHashes(index, sha1.Sum(res))
 
@@ -281,6 +268,51 @@ func (b Bittorrent) Download(path string, index int) error {
 	}
 
 	log.Printf("Piece %d downloaded to /tmp/test-piece-%d.", index, index)
+
+	return nil
+}
+
+func (b Bittorrent) DownloadWholePieces(output string) error {
+
+	defer b.Close()
+
+	if b.torrent == nil {
+		return errors.New("handshake doesn't applied")
+	}
+
+	err := b.sendInteresting()
+
+	if err != nil {
+		return err
+	}
+
+	blocks := b.generatesBlocks()
+
+	data := make([]byte, 0)
+
+	for index := range blocks {
+		res := b.downloadPiece(blocks[index])
+
+		err = b.compareHashes(index, sha1.Sum(res))
+
+		if err != nil {
+			return err
+		}
+
+		data = append(data, res...)
+
+		log.Println(index)
+	}
+
+	fmt.Println(len(data))
+
+	err = os.WriteFile(output, data, 777)
+
+	if err != nil {
+		return err
+	}
+
+	log.Printf("Downloaded %s to %s.", b.torrent.Info.Name, output)
 
 	return nil
 }
