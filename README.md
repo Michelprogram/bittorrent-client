@@ -3,12 +3,11 @@
 <!-- PROJECT LOGO -->
 <br />
 <div align="center">
-    <img src="bittorent.png" alt="Logo" width="80" height="80" />
+    <img src="bittorrent.png" alt="Logo" width="80" height="80" />
 
 <h3 align="center">Bittorrent client in Go</h3>
 
   <p align="center">Clone bittorrent client in Go based on course from codecrafter.</p>
-    <img src="preview/preview.png" alt="prediction" />
 </div>
 
  <br />
