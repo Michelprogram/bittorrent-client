@@ -1,19 +1,19 @@
-package main
+package torrent
 
 import (
-	"bytes"
 	"fmt"
 	"io"
 	"math/big"
-	"math/rand"
 	"net"
 	"net/http"
 	"net/url"
+
+	"github.com/codecrafters-io/bittorrent-starter-go/helpers"
+	"github.com/codecrafters-io/bittorrent-starter-go/internal/bencode"
 )
 
 var (
-	SIZE_PEER_ID = 20
-	SIZE_IP      = 6
+	SIZE_IP = 6
 )
 
 type IP struct {
@@ -63,22 +63,6 @@ type Tracker struct {
 	*url.URL
 }
 
-func randomPeerId() string {
-
-	var buffer bytes.Buffer
-
-	numbers := [10]byte{
-		'0', '1', '2', '3', '4', '5', '6', '7', '8', '9',
-	}
-
-	for i := 0; i < SIZE_PEER_ID; i++ {
-		buffer.WriteByte(numbers[rand.Intn(len(numbers))])
-	}
-
-	return buffer.String()
-
-}
-
 func NewTracker(torrent Torrent) (*Tracker, error) {
 
 	req, err := url.Parse(torrent.Announce)
@@ -89,7 +73,7 @@ func NewTracker(torrent Torrent) (*Tracker, error) {
 
 	return &Tracker{
 		InfoHash:   string(torrent.Hash),
-		PeerId:     randomPeerId(),
+		PeerId:     helpers.RandomPeerId(),
 		Port:       6881,
 		Uploaded:   0,
 		Downloaded: 0,
@@ -120,7 +104,7 @@ func (t Tracker) Get() (TrackerResponse, error) {
 
 	data, _ := io.ReadAll(res.Body)
 
-	received, err := NewBencode[map[string]any](string(data))
+	received, err := bencode.NewBencode[map[string]any](string(data))
 
 	if err != nil {
 		return TrackerResponse{}, err
